@@ -1,6 +1,6 @@
 'use strict';
 
-import { workspace, TextDocument, Uri, ExtensionContext} from 'vscode';
+import { workspace, TextDocument, Uri, ExtensionContext, WorkspaceConfiguration} from 'vscode';
 import * as fs from "fs";
 import * as path from "path";
 
@@ -25,14 +25,14 @@ export function getFilePaths(text: string, document: TextDocument) {
                 showPath = paths[item] + `/${file[1]}`;
             }
         }
-        for (let extension of config.extensions) {
-            showPath = showPath + extension;
-            let filePath = workspaceFolder + showPath;
+        for (let extension of config.get<string[]>("extensions")) {
+            const newPath = showPath + extension;
+            let filePath = workspaceFolder + newPath;
 
             if (fs.existsSync(filePath)) {
                 result.push({
                     "name": item,
-                    "showPath": showPath,
+                    "showPath": newPath,
                     "fileUri": Uri.file(filePath)
                 });
             }
@@ -42,20 +42,10 @@ export function getFilePaths(text: string, document: TextDocument) {
     return result;
 }
 
-function scanViewPaths(workspaceFolder, config) {
-    let folders = Object.assign({}, config.folders);
+function scanViewPaths(workspaceFolder, config: WorkspaceConfiguration) {
+    let folders = Object.assign({}, config.get("folders"));
 
-    // Modules
-    let modulePath = path.join(workspaceFolder, 'Modules');
-    if (fs.existsSync(modulePath)) {
-        fs.readdirSync(modulePath).forEach(element => {
-            let file = path.join(modulePath, element);
-            if (fs.statSync(file).isDirectory()) {
-                folders[element.toLocaleLowerCase()] = "/Modules/" + element + "/resources/views";
-            }
-        });
-    }
-    // vendor
+    // Vendor
     let vendorPath = path.join(workspaceFolder, 'resources/views/vendor');
     if (fs.existsSync(vendorPath)) {
         fs.readdirSync(vendorPath).forEach(element => {
